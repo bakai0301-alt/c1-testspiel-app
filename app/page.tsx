@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
+import { builtinExercises } from "@/lib/builtin-exercises";
 import { sampleExercise } from "@/lib/sample-exercise";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
 import type {
@@ -59,6 +60,8 @@ const topicSuggestions = [
   "Künstliche Intelligenz im Alltag",
   "Kultur und Erinnerung",
 ];
+
+const starterExercises = [sampleExercise, ...builtinExercises];
 
 function createQuiz(exercise: Exercise): QuizItem[] {
   const mcq: QuizItem[] = exercise.mcq.map((question, index) => ({
@@ -194,7 +197,7 @@ export default function Home() {
   const [length, setLength] = useState<"kurz" | "mittel" | "lang">("mittel");
   const [tone, setTone] = useState<"sachlich" | "essayistisch" | "reportage">("sachlich");
   const [exercise, setExercise] = useState<Exercise>(sampleExercise);
-  const [exercises, setExercises] = useState<Exercise[]>([sampleExercise]);
+  const [exercises, setExercises] = useState<Exercise[]>(starterExercises);
   const [attempts, setAttempts] = useState<AttemptRecord[]>([]);
   const [savedWords, setSavedWords] = useState<VocabularyItem[]>([]);
   const [generating, setGenerating] = useState(false);
@@ -231,7 +234,12 @@ export default function Home() {
         supabase.from("saved_words").select("*").order("created_at", { ascending: false }),
       ]);
       if (exerciseRows.data?.length) {
-        setExercises(exerciseRows.data.map((row) => row.content as Exercise));
+        const cloudExercises = exerciseRows.data.map((row) => row.content as Exercise);
+        const cloudIds = new Set(cloudExercises.map((item) => item.id));
+        setExercises([
+          ...cloudExercises,
+          ...starterExercises.filter((item) => !cloudIds.has(item.id)),
+        ]);
       }
       if (attemptRows.data) {
         setAttempts(
@@ -280,7 +288,9 @@ export default function Home() {
     setError("");
     if (demoMode) {
       await new Promise((resolve) => setTimeout(resolve, 700));
-      openExercise({ ...sampleExercise, topic, id: `demo-${Date.now()}` });
+      const matchingExercises = length === "lang" ? builtinExercises.slice(0, 3) : builtinExercises.slice(3);
+      const nextExercise = matchingExercises[Math.floor(Math.random() * matchingExercises.length)];
+      openExercise(nextExercise);
       setGenerating(false);
       return;
     }
@@ -471,7 +481,7 @@ export default function Home() {
                 {generating ? <LoaderCircle className="spin" size={18} /> : <Sparkles size={18} />}
                 {generating ? "Text wird geschrieben …" : "Lesetraining erstellen"}
               </button>
-              {demoMode && <p className="demo-note">In der Vorschau öffnet der Button einen vollständigen Beispieltext.</p>}
+              {demoMode && <p className="demo-note">In der Vorschau öffnet der Button einen passenden Text aus der Bibliothek.</p>}
             </form>
           </section>
 
@@ -549,18 +559,45 @@ export default function Home() {
                 const item = quiz[quizIndex];
                 const value = item.kind === "evidence" ? item.values[index] : index;
                 const selected = answers[item.key] === value;
+                const answered = answers[item.key] !== undefined;
+                const correctOption = value === item.correct;
+                const answerClass = answered
+                  ? correctOption
+                    ? "answer-correct"
+                    : selected
+                      ? "answer-incorrect"
+                      : "answer-locked"
+                  : selected
+                    ? "selected"
+                    : "";
                 return (
                   <button
-                    className={selected ? "selected" : ""}
+                    className={answerClass}
                     type="button"
                     key={option}
+                    disabled={answered}
                     onClick={() => setAnswers((current) => ({ ...current, [item.key]: value }))}
                   >
-                    <span>{String.fromCharCode(65 + index)}</span><strong>{option}</strong>{selected && <Check size={18} />}
+                    <span>{String.fromCharCode(65 + index)}</span>
+                    <strong>{option}</strong>
+                    {answered && correctOption && <Check size={18} />}
+                    {answered && selected && !correctOption && <X size={18} />}
                   </button>
                 );
               })}
             </div>
+            {answers[quiz[quizIndex].key] !== undefined && (
+              <div
+                className={`instant-feedback ${answers[quiz[quizIndex].key] === quiz[quizIndex].correct ? "correct" : "incorrect"}`}
+                role="status"
+              >
+                <span>{answers[quiz[quizIndex].key] === quiz[quizIndex].correct ? <Check size={19} /> : <X size={19} />}</span>
+                <div>
+                  <strong>{answers[quiz[quizIndex].key] === quiz[quizIndex].correct ? "Richtig" : "Nicht ganz"}</strong>
+                  <p>{quiz[quizIndex].explanation}</p>
+                </div>
+              </div>
+            )}
             <div className="question-actions">
               <button className="secondary-button" disabled={quizIndex === 0} onClick={() => setQuizIndex(quizIndex - 1)}><ArrowLeft size={17} /> Zurück</button>
               {quizIndex < quiz.length - 1 ? (

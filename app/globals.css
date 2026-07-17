@@ -191,6 +191,23 @@ button { color: inherit; }
 .answer-list button.selected { border-color: var(--green); background: var(--green-soft); }
 .answer-list button.selected > span { background: var(--green); color: #fff; border-color: var(--green); }
 .answer-list button svg { color: var(--green); }
+.answer-list button:disabled { cursor: default; opacity: 1; }
+.answer-list button.answer-locked { color: #8a8f8b; background: rgba(255, 253, 248, .55); }
+.answer-list button.answer-correct { border-color: #4f8068; background: #e3eee7; }
+.answer-list button.answer-correct > span { color: #fff; background: var(--green); border-color: var(--green); }
+.answer-list button.answer-correct svg { color: var(--green); }
+.answer-list button.answer-incorrect { border-color: #b85b48; background: #f7e4de; }
+.answer-list button.answer-incorrect > span { color: #fff; background: #9c4635; border-color: #9c4635; }
+.answer-list button.answer-incorrect svg { color: #9c4635; }
+.instant-feedback { display: grid; grid-template-columns: 34px 1fr; gap: 13px; margin-top: 18px; padding: 18px; border: 1px solid; animation: feedback-in .2s ease-out; }
+.instant-feedback > span { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; }
+.instant-feedback strong { display: block; margin: 1px 0 5px; font-size: 14px; }
+.instant-feedback p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.instant-feedback.correct { border-color: #9bb8a8; background: #e3eee7; }
+.instant-feedback.correct > span { color: #fff; background: var(--green); }
+.instant-feedback.incorrect { border-color: #d7a395; background: #f7e4de; }
+.instant-feedback.incorrect > span { color: #fff; background: #9c4635; }
+@keyframes feedback-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 .question-actions { display: flex; justify-content: space-between; margin-top: 34px; }
 
 .result-hero { display: grid; grid-template-columns: 190px 1fr; gap: 50px; align-items: center; max-width: 870px; margin: 55px auto 85px; }
